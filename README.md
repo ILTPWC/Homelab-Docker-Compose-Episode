@@ -1,6 +1,6 @@
 # ILTPWC - Episode "Whats running on my Raspberry PI"
 
-This repository contains the sourcecode shown in the ILTPWC video [Whats running on my Raspberry PI as a home server](https://m.youtube.com/watch?v=ckvnHEIX4do).
+This repository contains the sourcecode shown in the ILTPWC video [Whats running on my Raspberry PI as a home server](https://www.youtube.com/watch?v=ckvnHElX4do).
 
 
 # Use Case
@@ -48,4 +48,4 @@ If this is the first time you setup the services you need to set a password for 
 - WatchTower | A great tool to keep your containers up to date
 
 # Call to action
-If you like what I do consider to (star & watch here on Github) or (like & subscribe to ILTPWC on YouTube)
+If you like what I do consider to (star & watch here on Github) or (like & subscribe to [ILTPWC on YouTube](https://www.youtube.com/channel/UCsdzIxeBvby42j8ti278lFw))
