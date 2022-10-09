@@ -1,0 +1,53 @@
+api:
+  dashboard: true
+
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+  
+  mariadb:
+    address: :3306
+
+  pihole-tcp:
+    address: :53
+  
+  pihole-udp:
+    address: :53/udp
+
+  rabbitmq5672:
+    address: :5672
+
+  postgresdb:
+    address: :5432
+
+  websecure:
+    address: :443
+    http:
+      middlewares:
+        - secureHeaders@file
+      tls:
+        certResolver: letsencrypt
+        domains:
+          - main: '<ADD_YOUR_URL>'
+            sans:
+              - '*.<ADD_YOUR_URL>'
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+  file:
+    filename: /configurations/dynamic.yml
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: <ADD_YOUR_MAIL>
+      storage: acme.json
+      dnsChallenge:
+        provider: "digitalocean"
+        delayBeforeCheck: 120

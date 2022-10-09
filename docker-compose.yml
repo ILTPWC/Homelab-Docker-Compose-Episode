@@ -1,0 +1,367 @@
+version: "2.2"
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - malfallax
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data-traefik/traefik.yml:/traefik.yml:ro
+      - ./data-traefik/acme.json:/acme.json
+      - ./data-traefik/configurations:/configurations
+    environment:
+      - DO_AUTH_TOKEN=<ADD_YOUR_TOKEN>
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.traefik-secure.entrypoints=websecure"
+      - "traefik.http.routers.traefik-secure.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.http.routers.traefik-secure.middlewares=user-auth@file"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - malfallax
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data-portainer:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.portainer-secure.entrypoints=websecure"
+      - "traefik.http.routers.portainer-secure.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.portainer-secure.service=portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"    
+
+  bitwarden:
+    image: vaultwarden/server:latest
+    container_name: bitwarden
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - malfallax
+    volumes:
+      - ./data-bitwarden/:/data/
+      - ./ssl/:/ssl/
+    environment:
+      - 'DOMAIN=https://<ADD_YOUR_URL>'
+      - 'SIGNUPS_ALLOWED=true'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.bitwarden-secure.entrypoints=websecure"
+      - "traefik.http.routers.bitwarden-secure.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.bitwarden-secure.service=bitwarden"
+      - "traefik.http.services.bitwarden.loadbalancer.server.port=80"
+
+  dashy:
+    container_name: dashy
+    image: lissy93/dashy
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    volumes:
+      - ./data-dashy:/app/public
+    networks:
+      - malfallax
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.dashy-secure.entrypoints=websecure"
+      - "traefik.http.routers.dashy-secure.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.dashy-secure.service=dashy"
+      - "traefik.http.services.dashy.loadbalancer.server.port=80"
+
+  uptime:
+    container_name: uptime
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    volumes:
+      - ./data-uptime:/app/data
+    networks:
+      - malfallax
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.uptime-secure.entrypoints=websecure"
+      - "traefik.http.routers.uptime-secure.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.uptime-secure.service=uptime"
+      - "traefik.http.services.uptime.loadbalancer.server.port=3001"        
+
+  mariadb:
+    container_name: mariadb
+    image: linuxserver/mariadb:latest
+    restart: unless-stopped
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-mariadb:/config
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD=<ADD_YOUR_PASSWORD>
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.mariadb.entrypoints=mariadb"
+      - "traefik.http.routers.mariadb.rule=Host(`*`)"
+      - "traefik.http.routers.mariadb.service=mariadb"
+      - "traefik.http.services.mariadb.loadbalancer.server.port=3306"
+
+  sshwifty:
+    image: niruix/sshwifty:latest
+    container_name: sshwifty
+    restart: unless-stopped
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - malfallax
+    volumes:
+      - ./data-sshwifty:/config 
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.sshwifty.entrypoints=websecure"
+      - "traefik.http.routers.sshwifty.rule=Host(`<ADD_YOUR_URL>`)" 
+      - "traefik.http.routers.sshwifty.service=sshwifty"
+      - "traefik.http.services.sshwifty.loadbalancer.server.port=8182"     
+
+  node-red:
+    image: nodered/node-red:latest
+    container_name: node-red
+    restart: unless-stopped
+    user: root
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-node-red/:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.node-red.entrypoints=websecure"
+      - "traefik.http.routers.node-red.rule=Host(`<ADD_YOUR_URL>`)" 
+      - "traefik.http.routers.node-red.service=node-red"
+      - "traefik.http.services.node-red.loadbalancer.server.port=1880"          
+
+  httpd-docs:
+    image: httpd
+    container_name: httpd-docs
+    restart: unless-stopped
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-httpd-docs/:/usr/local/apache2/htdocs/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.httpd-docs.entrypoints=websecure"
+      - "traefik.http.routers.httpd-docs.rule=Host(`<ADD_YOUR_URL>`)" 
+      - "traefik.http.routers.httpd-docs.service=httpd-docs"
+      - "traefik.http.services.httpd-docs.loadbalancer.server.port=80"         
+
+  httpd-lib:
+    image: httpd
+    container_name: httpd-lib
+    restart: unless-stopped
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-httpd-lib/:/usr/local/apache2/htdocs/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.httpd-lib.entrypoints=websecure"
+      - "traefik.http.routers.httpd-lib.rule=Host(`<ADD_YOUR_URL>`)" 
+      - "traefik.http.routers.httpd-lib.service=httpd-lib"
+      - "traefik.http.services.httpd-lib.loadbalancer.server.port=80"  
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-pihole/etc:/etc/pihole
+      - ./data-pihole/dnsmasq.d:/etc/dnsmasq.d
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.pihole.entrypoints=websecure"
+      - "traefik.http.routers.pihole.rule=Host(`<ADD_YOUR_URL>`)" 
+      - "traefik.http.routers.pihole.service=pihole"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+      - "traefik.tcp.routers.pihole-tcp.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.pihole-tcp.entrypoints=pihole-tcp"
+      - "traefik.tcp.routers.pihole-tcp.service=pihole-tcp@docker"
+      - "traefik.tcp.services.pihole-tcp.loadbalancer.server.port=53"
+      - "traefik.udp.routers.pihole-udp.rule=HostSNI(`*`)"
+      - "traefik.udp.routers.pihole-udp.entrypoints=pihole-udp"
+      - "traefik.udp.routers.pihole-udp.service=pihole-udp@docker"
+      - "traefik.udp.services.pihole-udp.loadbalancer.server.port=53"      
+
+  codeserver:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: codeserver
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-codeserver/code:/code
+      - ./data-codeserver/config:/config
+      - /Malfallax-Services:/malfallax
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.codeserver.entrypoints=websecure"
+      - "traefik.http.routers.codeserver.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.codeserver.service=codeserver"
+      - "traefik.http.services.codeserver.loadbalancer.server.port=8443"         
+
+  gogs:
+    image: gogs/gogs
+    container_name: gogs
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-gogs:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.gogs.entrypoints=websecure"
+      - "traefik.http.routers.gogs.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.gogs.service=gogs"
+      - "traefik.http.services.gogs.loadbalancer.server.port=3000"       
+
+  homeassist:
+    image: ghcr.io/home-assistant/raspberrypi4-homeassistant:stable
+    container_name: homeassist
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data-homeassist/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.homeassist.entrypoints=websecure"
+      - "traefik.http.routers.homeassist.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.homeassist.service=homeassist"
+      - "traefik.http.services.homeassist.loadbalancer.server.port=8123"          
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=<ADD_YOUR_PASSWORD>
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_ORG_NAME=Malfallax
+      - GF_ORG_ROLE=viewer
+    volumes:
+      - ./data-grafana:/var/lib/grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"  
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true    
+    volumes:
+      - ./data-prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=1y'
+      - '--web.enable-lifecycle'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.rule=Host(`<ADD_YOUR_URL>`)"
+      - "traefik.http.routers.prometheus.service=prometheus"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"            
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "5672:5672/tcp"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+      - "traefik.http.routers.rabbitmq.entrypoints=websecure"
+      - "traefik.http.routers.rabbitmq.rule=Host(`<ADD_YOUR_URL>`)" 
+      - "traefik.http.routers.rabbitmq.service=rabbitmq"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672" 
+      - "traefik.tcp.routers.rabbitmq5672.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.rabbitmq5672.entrypoints=rabbitmq5672"
+      - "traefik.tcp.routers.rabbitmq5672.service=rabbitmq5672@docker"
+      - "traefik.tcp.services.rabbitmq5672.loadbalancer.server.port=5672"
+  
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    networks:
+      - malfallax
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 86400
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=malfallax"
+
+networks:
+  malfallax:
+    external: true
